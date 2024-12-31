@@ -10,6 +10,7 @@ This project sets up a MySQL database for a marketing dashboard. The database co
 - [How to Download MySQL Server](#how-to-download-mysql-server)
 - [Using the Script](#using-the-script)
 - [Troubleshooting](#troubleshooting)
+- [Running the Backend](#running-the-backend)
 
 ## Overview
 
@@ -90,7 +91,7 @@ The schema is as follows:
 
 2. **Run the Script**:
 
-   - copy text from sql command.txt and paste it into the sql terminal:
+   - Copy text from `sql command.txt` and paste it into the SQL terminal.
 
 3. **Verify the Data**:
    - Check that data is loaded correctly:
@@ -154,3 +155,93 @@ If the script fails to load data:
   sudo systemctl restart mysql  # For Linux
   ```
   Or restart the MySQL Windows service via the Services Manager.
+
+## Running the Backend
+
+1. **Install .NET SDK**:
+
+   - Download and install the .NET SDK from the [official .NET website](https://dotnet.microsoft.com/download).
+   - Verify the installation by running:
+     ```bash
+     dotnet --version
+     ```
+
+2. **Navigate to the Backend Directory**:
+
+   - Ensure you are in the project directory containing the backend code.
+   - If the backend is in a subdirectory, navigate to it:
+     ```bash
+     cd backend
+     ```
+
+3. **Update `appsettings.json`**:
+
+   - Locate the `appsettings.json` file in the project directory.
+   - Update the `DefaultConnection` string with your database details. For example:
+     ```json
+     "DefaultConnection": "Server=localhost;Database=marketing_dashboard;User=root;Password=testpassword1!;"
+     ```
+
+4. **Restore Dependencies**:
+
+   - Run the following command to restore the required NuGet packages:
+     ```bash
+     dotnet restore
+     ```
+
+5. **Build the Project**:
+
+   - Build the backend to ensure there are no errors:
+     ```bash
+     dotnet build
+     ```
+
+6. **Run the Backend**:
+
+   - Start the backend in development mode:
+     ```bash
+     dotnet run --environment Development
+     ```
+
+7. **Access the Backend**:
+
+   - By default, the backend will run on `http://localhost:5000` or `https://localhost:5001`.
+   - You can customize the port by editing the `launchSettings.json` file or passing a `--urls` argument:
+     ```bash
+     dotnet run --urls "http://localhost:4000"
+     ```
+
+8. **Stop the Backend**:
+
+   - Press `Ctrl+C` to stop the backend process.
+
+9. **Deploy to Production** (Optional):
+
+   - To publish for production, use:
+     ```bash
+     dotnet publish -c Release -o ./publish
+     ```
+   - Deploy the contents of the `publish` directory to your server.
+
+### Troubleshooting the Backend
+
+- **Port Already in Use**: If you encounter an error indicating the port is in use, change the port:
+
+  ```bash
+  dotnet run --urls "http://localhost:4000"
+  ```
+
+- **Missing Dependencies**: Ensure all required dependencies are restored:
+
+  ```bash
+  dotnet restore
+  ```
+
+- **Build Errors**: Fix any errors shown during the `dotnet build` process. Check for missing files or incorrect configurations.
+
+- **Database Connection Issues**: Ensure that the `appsettings.json` file has the correct database details and that the database is running.
+
+- **Environment-Specific Issues**: Ensure the correct environment is set (`Development`, `Staging`, `Production`):
+  ```bash
+  dotnet run --environment Development
+  ```
