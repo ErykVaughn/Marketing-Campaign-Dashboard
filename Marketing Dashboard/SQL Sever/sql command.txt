@@ -1,0 +1,68 @@
+-- Drop existing database if it exists
+DROP DATABASE IF EXISTS marketing_dashboard;
+
+-- Create a new database
+CREATE DATABASE marketing_dashboard;
+USE marketing_dashboard;
+
+-- Create Campaigns table
+DROP TABLE IF EXISTS Campaigns;
+CREATE TABLE Campaigns (
+    Campaign_ID INT PRIMARY KEY,
+    Name VARCHAR(255)
+);
+
+-- Create Audiences table
+DROP TABLE IF EXISTS Audiences;
+CREATE TABLE Audiences (
+    Campaign_ID INT,
+    Record_ID INT,
+    Has_Phone BOOLEAN,
+    Has_Email BOOLEAN,
+    PRIMARY KEY (Campaign_ID, Record_ID)
+);
+
+-- Create Responses table
+DROP TABLE IF EXISTS Responses;
+CREATE TABLE Responses (
+    Campaign_ID INT,
+    Record_ID INT,
+    Lead_Flag BOOLEAN,
+    Lead_Timestamp DATETIME,
+    Funded_Flag BOOLEAN,
+    Funded_Timestamp DATETIME,
+    PRIMARY KEY (Campaign_ID, Record_ID)
+);
+
+-- Load data into Campaigns table
+-- Update the file path to match your system's file location
+LOAD DATA INFILE 'REPLACE_WITH_YOUR_PATH/Campaigns.csv'
+INTO TABLE Campaigns
+FIELDS TERMINATED BY ',' ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS
+(Campaign_ID, Name);
+
+-- Load data into Audiences table
+-- Update the file path to match your system's file location
+LOAD DATA INFILE 'REPLACE_WITH_YOUR_PATH/Audiences.csv'
+INTO TABLE Audiences
+FIELDS TERMINATED BY ',' ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS
+(Campaign_ID, Record_ID, Has_Phone, Has_Email);
+
+-- Load data into Responses table with necessary transformations
+-- Update the file path to match your system's file location
+LOAD DATA INFILE 'REPLACE_WITH_YOUR_PATH/Responses.csv'
+INTO TABLE Responses
+FIELDS TERMINATED BY ',' ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS
+(Campaign_ID, Record_ID, Lead_Flag, @Lead_Timestamp, Funded_Flag, @Funded_Timestamp)
+SET
+    Lead_Timestamp = STR_TO_DATE(@Lead_Timestamp, '%Y-%m-%dT%H:%i:%s.%fZ'),
+    Funded_Timestamp = CASE
+                        WHEN Funded_Flag = 0 THEN NULL
+                        ELSE STR_TO_DATE(@Funded_Timestamp, '%Y-%m-%dT%H:%i:%s.%fZ')
+                      END;

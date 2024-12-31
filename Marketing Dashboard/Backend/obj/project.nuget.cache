@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "X9VSWgpIi9c=",
+  "dgSpecHash": "8j8IKv04uL4=",
   "success": true,
-  "projectFilePath": "C:\\Users\\erykv\\OneDrive\\Desktop\\Marketing Dashboard\\Backend\\Backend.csproj",
+  "projectFilePath": "C:\\Users\\erykv\\OneDrive\\Documents\\GitHub\\Marketing-Campaign-Dashboard\\Marketing Dashboard\\Backend\\Backend.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\erykv\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
     "C:\\Users\\erykv\\.nuget\\packages\\azure.identity\\1.11.4\\azure.identity.1.11.4.nupkg.sha512",

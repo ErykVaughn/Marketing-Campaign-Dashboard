@@ -6757,11 +6757,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\erykv\\OneDrive\\Desktop\\Marketing Dashboard\\Backend\\Backend.csproj",
+      "projectUniqueName": "C:\\Users\\erykv\\OneDrive\\Documents\\GitHub\\Marketing-Campaign-Dashboard\\Marketing Dashboard\\Backend\\Backend.csproj",
       "projectName": "Backend",
-      "projectPath": "C:\\Users\\erykv\\OneDrive\\Desktop\\Marketing Dashboard\\Backend\\Backend.csproj",
+      "projectPath": "C:\\Users\\erykv\\OneDrive\\Documents\\GitHub\\Marketing-Campaign-Dashboard\\Marketing Dashboard\\Backend\\Backend.csproj",
       "packagesPath": "C:\\Users\\erykv\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\erykv\\OneDrive\\Desktop\\Marketing Dashboard\\Backend\\obj\\",
+      "outputPath": "C:\\Users\\erykv\\OneDrive\\Documents\\GitHub\\Marketing-Campaign-Dashboard\\Marketing Dashboard\\Backend\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\erykv\\AppData\\Roaming\\NuGet\\NuGet.Config"
