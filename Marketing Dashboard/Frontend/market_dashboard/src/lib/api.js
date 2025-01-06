@@ -1,36 +1,88 @@
-const API_BASE = "http://localhost:8443/api/Campaign";
+// api.js - Backend API interaction file
 
-export const fetchCampaigns = async () => {
-    const response = await fetch(`${API_BASE}`);
+const BASE_URL = "http://localhost:8443/api";
+
+/**
+ * Helper function to handle API requests.
+ * @param {string} endpoint - The API endpoint to call.
+ * @param {Object} options - The fetch options (method, headers, body, etc.).
+ * @returns {Promise<any>} - The parsed JSON response.
+ */
+const apiRequest = async (endpoint, options = {}) => {
+  try {
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+      headers: { "Content-Type": "application/json", ...options.headers },
+      ...options,
+    });
     if (!response.ok) {
-        throw new Error("Failed to fetch campaigns");
+      throw new Error(`Error: ${response.status} - ${response.statusText}`);
     }
-    return await response.json();
+    return response.json();
+  } catch (error) {
+    console.error("API Request Failed:", error);
+    throw error;
+  }
 };
 
-export const fetchLeadsForCampaign = async (campaignId) => {
-    const response = await fetch(`${API_BASE}/${campaignId}/leads`);
-    if (!response.ok) {
-        throw new Error("Failed to fetch leads for campaign");
-    }
-    return await response.json();
+// Audience Endpoints
+
+/** Fetch all audience data */
+export const fetchAllAudiences = async () => {
+  return apiRequest("/Audience");
 };
 
-// Add this function to fetch the lead statistics
-export const fetchLeadStatistics = async () => {
-    const response = await fetch(`${API_BASE}/lead-rate`);  // Adjust this URL if necessary
-    if (!response.ok) {
-        throw new Error("Failed to fetch lead statistics");
-    }
-    return await response.json();
+/** Fetch audience data for a specific campaign */
+export const fetchAudienceByCampaignId = async (campaignId) => {
+  return apiRequest(`/Audience/${campaignId}`);
 };
 
+// Campaign Endpoints
+
+/** Fetch all campaigns */
+export const fetchAllCampaigns = async () => {
+  return apiRequest("/Campaign");
+};
+
+/** Fetch average funded rate within a date range */
 export const fetchAverageFundedRate = async (startDate, endDate) => {
-    const response = await fetch(
-        `${API_BASE}/average-funded-rate?startDate=${startDate}&endDate=${endDate}`
-    );
-    if (!response.ok) {
-        throw new Error("Failed to fetch average funded rate");
-    }
-    return await response.json();
+  const queryParams = new URLSearchParams({ startDate, endDate }).toString();
+  return apiRequest(`/Campaign/average-funded-rate?${queryParams}`);
 };
+
+// Response Endpoints
+
+/** Fetch all responses */
+export const fetchAllResponses = async () => {
+  return apiRequest("/Response");
+};
+
+/** Fetch responses for a specific campaign */
+export const fetchResponseByCampaignId = async (campaignId) => {
+  return apiRequest(`/Response/${campaignId}`);
+};
+
+// Example Usage in a Component
+// You can import these functions and use them in your React components as needed:
+
+/*
+import { fetchAllAudiences, fetchAllCampaigns, fetchAverageFundedRate } from './api';
+
+const App = () => {
+  useEffect(() => {
+    const fetchData = async () => {
+      const audiences = await fetchAllAudiences();
+      console.log("Audiences:", audiences);
+
+      const campaigns = await fetchAllCampaigns();
+      console.log("Campaigns:", campaigns);
+
+      const averageFundedRate = await fetchAverageFundedRate("2024-12-01", "2024-12-15");
+      console.log("Average Funded Rate:", averageFundedRate);
+    };
+
+    fetchData();
+  }, []);
+
+  return <div>Check console for API results</div>;
+};
+*/

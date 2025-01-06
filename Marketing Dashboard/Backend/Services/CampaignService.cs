@@ -1,13 +1,14 @@
 using MySql.Data.MySqlClient;
+using BackendAPI.Database;
 
 
 namespace BackendAPI.Services
 {
     public class CampaignService : ICampaignService
     {
-        private readonly IGenericDatabaseService _dbService;
+        private readonly IDatabaseWrapper _dbService;
 
-        public CampaignService(IGenericDatabaseService dbService)
+        public CampaignService(IDatabaseWrapper dbService)
         {
             _dbService = dbService;
         }
@@ -81,80 +82,82 @@ namespace BackendAPI.Services
             return campaigns;
         }
 
-        // Get number of leads for a specific campaign
-        public int GetLeadsForCampaign(int campaignId)
+public CombinedLeadStatistics GetEnhancedLeadStatistics(DateTime startDate, DateTime endDate)
+{
+    // Overall data queries
+    string totalLeadsQuery = "SELECT COUNT(*) AS TotalLeads FROM Audiences;";
+    var totalLeads = _dbService.ExecuteScalar<int>(totalLeadsQuery);
+
+    string leadsWithPhonesQuery = "SELECT COUNT(*) AS LeadsWithPhones FROM Audiences WHERE Has_Phone = 1;";
+    var leadsWithPhones = _dbService.ExecuteScalar<int>(leadsWithPhonesQuery);
+
+    string leadsWithEmailsQuery = "SELECT COUNT(*) AS LeadsWithEmails FROM Audiences WHERE Has_Email = 1;";
+    var leadsWithEmails = _dbService.ExecuteScalar<int>(leadsWithEmailsQuery);
+
+    string leadsWithBothQuery = "SELECT COUNT(*) AS LeadsWithBoth FROM Audiences WHERE Has_Phone = 1 AND Has_Email = 1;";
+    var leadsWithBoth = _dbService.ExecuteScalar<int>(leadsWithBothQuery);
+
+    string fundedLeadsQuery = "SELECT COUNT(*) AS FundedLeads FROM Responses WHERE Funded_Flag = 1;";
+    var totalFundedLeads = _dbService.ExecuteScalar<int>(fundedLeadsQuery);
+
+    int leadsWithNeither = totalLeads - (leadsWithPhones + leadsWithEmails - leadsWithBoth);
+    int totalUnfundedLeads = totalLeads - totalFundedLeads;
+    double overallFundedPercentage = totalLeads == 0 ? 0 : (double)totalFundedLeads / totalLeads * 100;
+
+    // Date range-specific queries
+    string leadsWithinDateRangeQuery = @"
+        SELECT COUNT(*) AS LeadsWithinDateRange
+        FROM Responses
+        WHERE Lead_Timestamp BETWEEN @StartDate AND @EndDate;";
+    var leadsWithinDateRange = _dbService.ExecuteScalar<int>(leadsWithinDateRangeQuery, 
+        new[]
         {
-            string query = @"
-                SELECT COUNT(*) 
-                FROM Audiences 
-                WHERE Campaign_ID = @CampaignId";
+            new MySqlParameter("@StartDate", MySqlDbType.DateTime) { Value = startDate },
+            new MySqlParameter("@EndDate", MySqlDbType.DateTime) { Value = endDate }
+        });
 
-            var param = new MySqlParameter("@CampaignId", MySqlDbType.Int32) { Value = campaignId };
-            return _dbService.ExecuteScalar<int>(query, param);
-        }
-
-        // Get lead rate for records with an email
-        public LeadStatistics GetLeadStatistics()
+    string fundedLeadsWithinDateRangeQuery = @"
+        SELECT COUNT(*) AS FundedLeadsWithinDateRange
+        FROM Responses
+        WHERE Funded_Flag = 1 AND Lead_Timestamp BETWEEN @StartDate AND @EndDate;";
+    var fundedLeadsWithinDateRange = _dbService.ExecuteScalar<int>(fundedLeadsWithinDateRangeQuery, 
+        new[]
         {
-            // Query to get total leads
-            string totalLeadsQuery = @"
-        SELECT COUNT(*) AS TotalLeads
-        FROM Audiences;";
-            var totalLeads = _dbService.ExecuteScalar<int>(totalLeadsQuery);
+            new MySqlParameter("@StartDate", MySqlDbType.DateTime) { Value = startDate },
+            new MySqlParameter("@EndDate", MySqlDbType.DateTime) { Value = endDate }
+        });
 
-            // Query to get leads with phone numbers
-            string leadsWithPhonesQuery = @"
-        SELECT COUNT(*) AS LeadsWithPhones
-        FROM Audiences
-        WHERE Has_Phone = 1;";
-            var leadsWithPhones = _dbService.ExecuteScalar<int>(leadsWithPhonesQuery);
-
-            // Query to get leads with emails
-            string leadsWithEmailsQuery = @"
-        SELECT COUNT(*) AS LeadsWithEmails
-        FROM Audiences
-        WHERE Has_Email = 1;";
-            var leadsWithEmails = _dbService.ExecuteScalar<int>(leadsWithEmailsQuery);
-
-            // Calculate ratios
-            double phoneRatio = totalLeads == 0 ? 0 : (double)leadsWithPhones / totalLeads;
-            double emailRatio = totalLeads == 0 ? 0 : (double)leadsWithEmails / totalLeads;
-
-            // Combine results into a structured object
-            return new LeadStatistics
-            {
-                TotalLeads = totalLeads,
-                LeadsWithPhones = leadsWithPhones,
-                LeadsWithEmails = leadsWithEmails,
-                PhoneRatio = phoneRatio,
-                EmailRatio = emailRatio
-            };
-        }
-
-        // Get average funded rate for records with a Lead_Flag within a specific date range
-        public double GetAverageFundedRate(DateTime startDate, DateTime endDate)
+    string averageFundedRateQuery = @"
+        SELECT AVG(CASE WHEN Funded_Flag = 1 THEN 1 ELSE 0 END) AS AverageFundedRate
+        FROM Responses
+        WHERE Lead_Flag = 1 AND Lead_Timestamp BETWEEN @StartDate AND @EndDate;";
+    var averageFundedRate = _dbService.ExecuteScalar<double>(averageFundedRateQuery, 
+        new[]
         {
-            string query = @"
-                SELECT 
-                    AVG(CASE WHEN r.Funded_Flag = 1 AND r.Funded_Timestamp BETWEEN @StartDate AND @EndDate THEN 1 ELSE 0 END) AS AverageFundedRate
-                FROM Responses r
-                WHERE r.Lead_Flag = 1 AND r.Lead_Timestamp BETWEEN @StartDate AND @EndDate";
+            new MySqlParameter("@StartDate", MySqlDbType.DateTime) { Value = startDate },
+            new MySqlParameter("@EndDate", MySqlDbType.DateTime) { Value = endDate }
+        });
 
-            var parameters = new[]
-            {
-                new MySqlParameter("@StartDate", MySqlDbType.DateTime) { Value = startDate },
-                new MySqlParameter("@EndDate", MySqlDbType.DateTime) { Value = endDate }
-            };
+    // Combine into structured result
+    return new CombinedLeadStatistics
+    {
+        // Overall metrics
+        TotalLeads = totalLeads,
+        LeadsWithPhones = leadsWithPhones,
+        LeadsWithEmails = leadsWithEmails,
+        LeadsWithBoth = leadsWithBoth,
+        LeadsWithNeither = leadsWithNeither,
+        TotalFundedLeads = totalFundedLeads,
+        TotalUnfundedLeads = totalUnfundedLeads,
+        OverallFundedPercentage = overallFundedPercentage,
 
-            try
-            {
-                var result = _dbService.ExecuteScalar<double>(query, parameters);
-                return result;
-            }
-            catch (Exception)
-            {
-                return 0; // Or handle error gracefully
-            }
-        }
+        // Date-range-specific metrics
+        LeadsWithinDateRange = leadsWithinDateRange,
+        FundedLeadsWithinDateRange = fundedLeadsWithinDateRange,
+        AverageFundedRate = averageFundedRate,
+        StartDate = startDate,
+        EndDate = endDate
+    };
+}
     }
 }

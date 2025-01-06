@@ -1,44 +1,69 @@
-import React from 'react';
-import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom'; // Ensure jest-dom is globally available
-import CampaignList from '../CampaignList'; // Adjust the import path as necessary
+import React from "react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import "@testing-library/jest-dom";
+import CampaignList from "../CampaignList";
+import { fetchResponseByCampaignId, fetchAudienceByCampaignId } from "../../lib/api";
 
-// Test: displays loading message when no campaigns are provided
-it('displays loading message when no campaigns are provided', () => {
-  render(<CampaignList campaigns={[]} />);
-  expect(screen.getByText('No campaigns available.')).toBeInTheDocument();
-});
+// Mock the API calls
+jest.mock("../../lib/api", () => ({
+  fetchResponseByCampaignId: jest.fn(),
+  fetchAudienceByCampaignId: jest.fn(),
+}));
 
-// Test: displays campaign statistics when campaigns are provided
-it('displays campaign statistics when campaigns are provided', () => {
-  const campaigns = [
-    {
-      campaignId: 1,
-      name: 'Campaign 1',
-      totalLeads: 100,
-      totalResponses: 50,
-      fundedLeads: 40,
-      percentLeadsWithResponse: 0.5,
-      percentLeadsWithFunded: 0.4,
-      percentResponsesWithFunded: 0.8,
-    },
-  ];
+const mockCampaigns = [
+  {
+    campaignId: "123",
+    name: "Test Campaign",
+    totalLeads: 100,
+    totalResponses: 50,
+    fundedLeads: 30,
+    percentLeadsWithResponse: 0.5,
+    percentLeadsWithFunded: 0.3,
+    percentResponsesWithFunded: 0.6,
+  },
+];
 
-  render(<CampaignList campaigns={campaigns} />);
+describe("CampaignList Component", () => {
+  it("renders the CampaignList with campaigns", () => {
+    render(<CampaignList campaigns={mockCampaigns} />);
+    expect(screen.getByText("Campaign Statistics")).toBeInTheDocument();
+    expect(screen.getByText("Test Campaign")).toBeInTheDocument();
+    expect(screen.getByText("Total Leads")).toBeInTheDocument();
+  });
 
-  // Check if the statistics are rendered correctly
-  expect(screen.getByText(/Campaign ID:/)).toBeInTheDocument();
-  expect(screen.getByText('Campaign 1')).toBeInTheDocument();
-  
-  // Use regular expression to match 'Total Leads' text more flexibly
-  expect(screen.getByText(/Total Leads/)).toBeInTheDocument();
+  it("displays a message if no campaigns are available", () => {
+    render(<CampaignList campaigns={[]} />);
+    expect(screen.getByText("No campaigns available.")).toBeInTheDocument();
+  });
 
-  // Check if the value of 'Total Leads' is displayed
-  expect(screen.getByText('100')).toBeInTheDocument();
-});
+  it("expands and loads data on clicking the expand button", async () => {
+    const mockLeads = [
+      { campaign_ID: "123", record_ID: "lead1", has_Phone: true, has_Email: true },
+    ];
+    const mockResponses = [
+      { campaign_ID: "123", record_ID: "response1", lead_Flag: true, funded_Flag: false, lead_Timestamp: null, funded_Timestamp: null },
+    ];
 
-// Test: renders empty list when no campaigns are passed
-it('renders empty list when no campaigns are passed', () => {
-  render(<CampaignList campaigns={[]} />);
-  expect(screen.getByText('No campaigns available.')).toBeInTheDocument();
+    fetchAudienceByCampaignId.mockResolvedValue(mockLeads);
+    fetchResponseByCampaignId.mockResolvedValue(mockResponses);
+
+    render(<CampaignList campaigns={mockCampaigns} />);
+
+    // Expand the campaign row
+    const expandButton = screen.getByLabelText("expand row");
+    fireEvent.click(expandButton);
+
+    // Wait for the API calls and data to load
+    await waitFor(() => {
+      expect(fetchAudienceByCampaignId).toHaveBeenCalledWith("123");
+      expect(fetchResponseByCampaignId).toHaveBeenCalledWith("123");
+    });
+
+    // Wait for the state updates and rendering of the tables
+    await waitFor(() => {
+      expect(screen.getByText("Leads Table")).toBeInTheDocument();
+      expect(screen.getByText("lead1")).toBeInTheDocument();
+      expect(screen.getByText("response1")).toBeInTheDocument();
+    });
+  });
 });

@@ -21,14 +21,14 @@ builder.Services.AddCors(options =>
 
 // Register CampaignService with scoped lifetime
 builder.Services.AddScoped<ICampaignService, CampaignService>();
+builder.Services.AddScoped<IAudienceService, AudienceService>();
+builder.Services.AddScoped<IResponseService, ResponseService>();
+
 
 // Register MySqlDatabaseWrapper as IDatabaseWrapper
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddScoped<IDatabaseWrapper>(provider =>
     new MySqlDatabaseWrapper(connectionString));
-
-// Register GenericDatabaseService with scoped lifetime, using IDatabaseWrapper
-builder.Services.AddScoped<IGenericDatabaseService, GenericDatabaseService>();
 
 var app = builder.Build();
 

@@ -1,108 +1,83 @@
-// api.test.js
-import { fetchCampaigns, fetchLeadsForCampaign, fetchLeadStatistics, fetchAverageFundedRate } from '../api';
+import { fetchAllAudiences, fetchAudienceByCampaignId, fetchAllCampaigns, fetchAverageFundedRate, fetchAllResponses, fetchResponseByCampaignId } from '../api';
+import fetchMock from 'jest-fetch-mock';
 
-global.fetch = jest.fn();  // Mock global fetch function
+fetchMock.enableMocks();
 
 describe('API Functions', () => {
-    beforeEach(() => {
-        fetch.mockClear();  // Reset mock before each test
-    });
+  beforeEach(() => {
+    fetchMock.resetMocks(); // Reset mocks before each test
+  });
 
-    test('fetchCampaigns should return data on success', async () => {
-        const mockResponse = { campaigns: [{ id: 1, name: 'Campaign 1' }] };
-        fetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => mockResponse,
-        });
+  it('fetchAllAudiences should fetch all audiences successfully', async () => {
+    // Mock the response
+    fetchMock.mockResponseOnce(JSON.stringify([{ id: 1, name: 'Audience 1' }, { id: 2, name: 'Audience 2' }]));
 
-        const data = await fetchCampaigns();
+    const data = await fetchAllAudiences();
+    
+    // Check that fetch was called with correct URL
+    expect(fetchMock).toHaveBeenCalledWith('http://localhost:8443/api/Audience', expect.any(Object));
+    expect(data).toEqual([{ id: 1, name: 'Audience 1' }, { id: 2, name: 'Audience 2' }]);
+  });
 
-        expect(fetch).toHaveBeenCalledWith('http://localhost:8443/api/Campaign');
-        expect(data).toEqual(mockResponse);
-    });
+  it('fetchAudienceByCampaignId should fetch audience by campaign ID', async () => {
+    const campaignId = '123';
+    fetchMock.mockResponseOnce(JSON.stringify({ campaignId, name: 'Campaign Audience' }));
 
-    test('fetchCampaigns should throw an error on failure', async () => {
-        fetch.mockResolvedValueOnce({ ok: false });
+    const data = await fetchAudienceByCampaignId(campaignId);
+    
+    expect(fetchMock).toHaveBeenCalledWith(`http://localhost:8443/api/Audience/${campaignId}`, expect.any(Object));
+    expect(data).toEqual({ campaignId, name: 'Campaign Audience' });
+  });
 
-        try {
-            await fetchCampaigns();
-        } catch (error) {
-            expect(error).toEqual(new Error('Failed to fetch campaigns'));
-        }
-    });
+  it('fetchAllCampaigns should fetch all campaigns successfully', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify([{ id: 1, name: 'Campaign 1' }, { id: 2, name: 'Campaign 2' }]));
 
-    test('fetchLeadsForCampaign should return data on success', async () => {
-        const campaignId = 1;
-        const mockResponse = { leads: [{ id: 101, name: 'Lead 1' }] };
-        fetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => mockResponse,
-        });
+    const data = await fetchAllCampaigns();
+    
+    expect(fetchMock).toHaveBeenCalledWith('http://localhost:8443/api/Campaign', expect.any(Object));
+    expect(data).toEqual([{ id: 1, name: 'Campaign 1' }, { id: 2, name: 'Campaign 2' }]);
+  });
 
-        const data = await fetchLeadsForCampaign(campaignId);
+  it('fetchAverageFundedRate should fetch average funded rate', async () => {
+    const startDate = '2024-12-01';
+    const endDate = '2024-12-15';
+    const queryParams = new URLSearchParams({ startDate, endDate }).toString();
+    
+    fetchMock.mockResponseOnce(JSON.stringify({ averageFundedRate: 0.75 }));
 
-        expect(fetch).toHaveBeenCalledWith(`http://localhost:8443/api/Campaign/${campaignId}/leads`);
-        expect(data).toEqual(mockResponse);
-    });
+    const data = await fetchAverageFundedRate(startDate, endDate);
+    
+    expect(fetchMock).toHaveBeenCalledWith(`http://localhost:8443/api/Campaign/average-funded-rate?${queryParams}`, expect.any(Object));
+    expect(data).toEqual({ averageFundedRate: 0.75 });
+  });
 
-    test('fetchLeadsForCampaign should throw an error on failure', async () => {
-        const campaignId = 1;
-        fetch.mockResolvedValueOnce({ ok: false });
+  it('fetchAllResponses should fetch all responses successfully', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify([{ id: 1, status: 'Response 1' }, { id: 2, status: 'Response 2' }]));
 
-        try {
-            await fetchLeadsForCampaign(campaignId);
-        } catch (error) {
-            expect(error).toEqual(new Error('Failed to fetch leads for campaign'));
-        }
-    });
+    const data = await fetchAllResponses();
+    
+    expect(fetchMock).toHaveBeenCalledWith('http://localhost:8443/api/Response', expect.any(Object));
+    expect(data).toEqual([{ id: 1, status: 'Response 1' }, { id: 2, status: 'Response 2' }]);
+  });
 
-    test('fetchLeadStatistics should return data on success', async () => {
-        const mockResponse = { statistics: { totalLeads: 100, totalFunded: 50 } };
-        fetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => mockResponse,
-        });
+  it('fetchResponseByCampaignId should fetch responses for a specific campaign', async () => {
+    const campaignId = '123';
+    fetchMock.mockResponseOnce(JSON.stringify([{ id: 1, status: 'Response 1' }]));
 
-        const data = await fetchLeadStatistics();
+    const data = await fetchResponseByCampaignId(campaignId);
+    
+    expect(fetchMock).toHaveBeenCalledWith(`http://localhost:8443/api/Response/${campaignId}`, expect.any(Object));
+    expect(data).toEqual([{ id: 1, status: 'Response 1' }]);
+  });
 
-        expect(fetch).toHaveBeenCalledWith('http://localhost:8443/api/Campaign/lead-rate');
-        expect(data).toEqual(mockResponse);
-    });
+  it('should throw an error if fetch fails (for any API call)', async () => {
+    // Simulate a failed response
+    fetchMock.mockRejectOnce(new Error('API request failed'));
 
-    test('fetchLeadStatistics should throw an error on failure', async () => {
-        fetch.mockResolvedValueOnce({ ok: false });
-
-        try {
-            await fetchLeadStatistics();
-        } catch (error) {
-            expect(error).toEqual(new Error('Failed to fetch lead statistics'));
-        }
-    });
-
-    test('fetchAverageFundedRate should return data on success', async () => {
-        const startDate = '2023-01-01';
-        const endDate = '2023-12-31';
-        const mockResponse = { averageFundedRate: 0.5 };
-        fetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => mockResponse,
-        });
-
-        const data = await fetchAverageFundedRate(startDate, endDate);
-
-        expect(fetch).toHaveBeenCalledWith(`http://localhost:8443/api/Campaign/average-funded-rate?startDate=${startDate}&endDate=${endDate}`);
-        expect(data).toEqual(mockResponse);
-    });
-
-    test('fetchAverageFundedRate should throw an error on failure', async () => {
-        const startDate = '2023-01-01';
-        const endDate = '2023-12-31';
-        fetch.mockResolvedValueOnce({ ok: false });
-
-        try {
-            await fetchAverageFundedRate(startDate, endDate);
-        } catch (error) {
-            expect(error).toEqual(new Error('Failed to fetch average funded rate'));
-        }
-    });
+    try {
+      await fetchAllAudiences();
+    } catch (error) {
+      expect(error).toEqual(new Error('API request failed'));
+    }
+  });
 });
